@@ -4,6 +4,7 @@
     "NAME": null,
     "SOURCE": null,
     "BASE_AMI": "ami-801812e8",
+    "COMPOSE": "",
     "AWS_REGION": "us-east-1",
     "AWS_ACCESS": "{{env \"AWS_ACCESS\"}}",
     "AWS_SECRET": "{{env \"AWS_SECRET\"}}"
@@ -24,6 +25,19 @@
     }
   ],
   "provisioners": [
+    {
+      "type": "file",
+      "source": "install-docker-compose",
+      "destination": "/tmp/install-docker-compose"
+    },
+    {
+      "type": "shell",
+      "execute_command": "env {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "chmod +x /tmp/install-docker-compose",
+        "/tmp/install-docker-compose {{user \"COMPOSE\"}}"
+      ]
+    },
     {
       "type": "shell",
       "execute_command": "env {{ .Vars }} sudo -E -S sh '{{ .Path }}'",

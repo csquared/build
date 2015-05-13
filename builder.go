@@ -18,10 +18,11 @@ import (
 var ()
 
 type Builder struct {
-	AwsRegion   string
-	AwsAccess   string
-	AwsSecret   string
-	GitHubToken string
+	AwsRegion      string
+	AwsAccess      string
+	AwsSecret      string
+	ComposeVersion string
+	GitHubToken    string
 }
 
 func NewBuilder() *Builder {
@@ -121,11 +122,15 @@ func (b *Builder) buildAmi(repo, name, ref string, public bool) (string, error) 
 		return "", err
 	}
 
+	if err = writeFile(dir, "install-docker-compose", nil); err != nil {
+		return "", err
+	}
+
 	if err = writeFile(dir, "cloudwatch-logs.conf", map[string]string{"{{APP}}": name}); err != nil {
 		return "", err
 	}
 
-	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "NAME="+name, "-var", "SOURCE="+clone, "packer.json")
+	cmd = exec.Command("packer", "build", "-machine-readable", "-var", "NAME="+name, "-var", "SOURCE="+clone, "-var", "COMPOSE="+b.ComposeVersion, "packer.json")
 	cmd.Dir = dir
 
 	stdout, err = cmd.StdoutPipe()

@@ -21,6 +21,7 @@ func main() {
 	secret := flag.String("secret", os.Getenv("AWS_SECRET"), "aws secret key")
 	token := flag.String("token", os.Getenv("GITHUB_TOKEN"), "github access token")
 	public := flag.Bool("public", false, "make ami public")
+	compose := flag.String("compose", "", "docker-compose version")
 
 	flag.Parse()
 
@@ -36,6 +37,7 @@ func main() {
 	builder.AwsRegion = *region
 	builder.AwsAccess = *access
 	builder.AwsSecret = *secret
+	builder.ComposeVersion = *compose
 	builder.GitHubToken = *token
 
 	app := positional(args, 0)

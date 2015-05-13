@@ -1,0 +1,15 @@
+#!/bin/bash
+
+COMPOSE_VERSION=${1-1.2.0}
+
+if [ "${COMPOSE_VERSION}" == "master" ]; then
+  cd /tmp
+  git clone https://github.com/docker/compose
+  cd compose
+  script/build-linux
+  ls -la dist/
+else
+  sudo curl -L https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+fi
+
+sudo chmod +x /usr/local/bin/docker-compose
