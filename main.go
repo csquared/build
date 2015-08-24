@@ -11,6 +11,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/convox/build/Godeps/_workspace/src/github.com/convox/cli/manifest"
 )
@@ -124,7 +126,7 @@ func clone(source, app string) (string, error) {
 			return "", err
 		}
 
-		err = run("git", tmp, "git", "clone", source, clone)
+		err = run("git", tmp, "git", "clone", "--progress", "-v", source, clone)
 
 		if err != nil {
 			return "", err
@@ -220,11 +222,20 @@ func prefixReader(r io.Reader, prefix string) {
 }
 
 func run(prefix, dir string, command string, args ...string) error {
+	started := time.Now()
+
+	fmt.Fprintf(os.Stderr, "%s|cmd='%s %s'\n", "system", command, strings.Join(args, " "))
+
 	cmd := exec.Command(command, args...)
 	cmd.Dir = dir
 
 	stdout, err := cmd.StdoutPipe()
-	cmd.Stderr = cmd.Stdout
+
+	if err != nil {
+		return err
+	}
+
+	stderr, err := cmd.StderrPipe()
 
 	if err != nil {
 		return err
@@ -232,19 +243,35 @@ func run(prefix, dir string, command string, args ...string) error {
 
 	cmd.Start()
 
-	scanner := bufio.NewScanner(stdout)
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+	go scanLines(stdout, prefix, &wg)
+	go scanLines(stderr, prefix, &wg)
+	wg.Wait()
+
+	exit := "0"
+	if err = cmd.Wait(); err != nil {
+		exit = err.Error()
+
+		fmt.Printf("%s|error: %s\n", prefix, err)
+	}
+
+	elapsed := time.Now().Sub(started).Nanoseconds() / 1000000
+
+	fmt.Fprintf(os.Stderr, "%s|cmd='%s %s' exit=%s elapsed=%d\n", "system", command, strings.Join(args, " "), exit, elapsed)
+
+	return err
+}
+
+func scanLines(r io.Reader, prefix string, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
 		fmt.Printf("%s|%s\n", prefix, scanner.Text())
 	}
-
-	err = cmd.Wait()
-
-	if err != nil {
-		fmt.Printf("%s|error: %s\n", prefix, err)
-	}
-
-	return err
 }
 
 func isDir(dir string) bool {
