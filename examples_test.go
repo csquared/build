@@ -133,9 +133,6 @@ func testBuild(repo, name string) (string, string) {
 		outC <- buf.String()
 	}()
 
-	builder := NewBuilder()
-	_ = builder.Build(repo, name, "", "", "", "")
-
 	// restore stderr, stdout
 	ew.Close()
 	os.Stderr = oldErr
